@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "chainlink/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "chainlink/v0.8/VRFConsumerBaseV2.sol";
+
 contract Lottery { 
     /// @dev Smart contract owner
     address public owner = payable(0xa6076e139FB8089C9d123dA690726B976E290799); 
