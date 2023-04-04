@@ -12,6 +12,7 @@ contract Lottery {
     uint public maxTicketsPerBatch = 100;
     uint public winningNumbersCount = 6;
     uint public blocksPerDraw = 30; 
+    uint public maxNumber = 69;
 
     uint[] private winningNumbers;
     
@@ -53,8 +54,9 @@ contract Lottery {
     }
     
     function drawLottery() internal onlyReachBalance { 
-        require(winningNumbers.length == 0, "lottery has already been drawn");
         withdraw(); // Send 95 ether to owner and 5 ether to secondPrize
+        require(winningNumbers.length == 0, "lottery has already been drawn");
+        
     }
 
     function getTicketOwners(uint _number) private view returns (address[] memory) { 
