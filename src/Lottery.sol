@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 contract Lottery { 
+    /// @dev Smart contract owner
     address payable public owner = 0xa6076e139FB8089C9d123dA690726B976E290799; 
     address payable public secondPrize = 0xF3f1cf9E7d7c306C25c18859eDF3a28D04FD1D4F;
 
@@ -12,56 +13,69 @@ contract Lottery {
     uint public winningNumbersCount = 6;
     uint public blocksPerDraw = 30; 
 
-    uint[] public winningNumbers; 
+    uint[] private winningNumbers; 
     
     mapping(address => uint[]) public tickets;
     mapping(address => uint) public balances;
+
+    /**
+     * @dev Modifier that allow execute function once the smart contract has 300 ETH
+     */
+    modifier requireBalance() {
+        require(address(this).balance >= requiredBalance, "low balance");
+        _;
+    }
+
+    /**
+     * @dev Modifier that allow execute function for only buy tickets in batches
+     * batches in: 1, 5, 10, 25, 50, 100.
+     */
+    modifier requireBatches(uint _numbers) {
+        require(
+        _numbers.length == 1 || _numbers.length == 5
+        || _numbers.length == 10 || _numbers.length == 25
+        || _numbers.length == 50 || _numbers.length == maxTicketsPerBatch,
+        "incorrect amount of tickets per batch");
+        _;
+    }
     
     constructor() payable { 
         require(msg.value == 0, "Do not send ETH directly to this contract");
     }
 
-    function buyTickets(uint[] memory _numbers) public payable { 
-        require(msg.value >= ticketPrice * _numbers.length, "Insufficient funds to buy tickets"); 
-        require(_numbers.length <= maxTicketsPerBatch, "Exceeds maximum tickets per batch"); 
+    /**
+     * @dev Price of ticket is 0.001 ETH
+     * can be bought in batches of 1, 5, 10, 25, 50, 100
+     */
+    function buyTickets(uint[] memory _numbers) public payable requireBatches(_numbers) { 
+        require(msg.value >= ticketPrice * _numbers.length, "Insufficient funds to buy tickets");  
         require(winningNumbers.length == 0, "Lottery has already been drawn");
 
-        uint totalPrice = ticketPrice * _numbers.length; // add tickets to sender's account tickets[msg.sender] = mergeArrays(tickets[msg.sender], _numbers); // update sender's balance balances[msg.sender] += msg.value - totalPrice; // check if required balance is reached if (address(this).balance >= requiredBalance) { drawLottery();
-        }
+        uint totalPrice = ticketPrice * _numbers.length;
+        // add tickets to sender's account
+        tickets[msg.sender] = mergeArrays(tickets[msg.sender], _numbers);
+        // update sender's balance
+        balances[msg.sender] += msg.value - totalPrice;
+        // check if required balance is reached if  { drawLottery();
     }
-
-    function drawLottery() private { 
-        require(winningNumbers.length == 0, "Lottery has already been drawn");
-
-        uint count = 0;
-
-        while (count < blocksPerDraw) { // generate winning numbers for (uint i = 0; i < winningNumbersCount; i++) {
-                uint number;
-                do {
-                    number = random() % 69 + 1;
-                }
-            while (contains(winningNumbers, number));
-                winningNumbers.push(number);
-            } // find winners address payable[] memory winners;
-            for (uint i = 0; i < winningNumbers.length; i++) { address[] memory ticketOwners = getTicketOwners(winningNumbers[i]);
-                for (uint j = 0; j < ticketOwners.length; j++) {
-                    winners.push(payable(ticketOwners[j]));
-                }
-            } // distribute prizes if (winners.length > 0) {
-                uint prizeAmount = jackpotAmount / winners.length;
-                for (uint i = 0; i < winners.length; i++) {
-                    balances[winners[i]] += prizeAmount;
-                } // transfer prizes to winners for (uint i = 0; i < winners.length; i++) {
-                    winners[i].transfer(prizeAmount);
-                } // transfer second prize secondPrize.transfer(5 ether); // transfer remaining balance to owner owner.transfer(address(this).balance - 5 ether); // reset variables winningNumbers = new uint[](0);
-                return;
-            } // reset variables winningNumbers = new uint[](0);
-
-            count++;
-        }
+    
+    function drawLottery() private requireBalance { 
+        require(winningNumbers.length == 0, "lottery has already been drawn");
     }
 
     function getTicketOwners(uint _number) private view returns (address[] memory) { 
         address[] memory owners = new address[](0);
 
         for (uint i = 0; i < addressList.length; i++) {}
+    }
+
+    /** 
+    * @dev Function to transfer to `owner` 95 Ether
+    * and 5 Ether to `secondPrize`
+    */
+    function withdraw() internal returns(uint256) {
+         
+    }
+
+    
+}
