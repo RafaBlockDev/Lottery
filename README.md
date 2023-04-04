@@ -1,4 +1,15 @@
-*Note: This repo has been recently updated for Sepolia*
+# Lottery Test
+
+Find where does the contract fail.
+
+
+## Specifications
+
+- Lottery is 200 ETH (coded into Smart contract) launches once contracts reaches 300ETH.
+- 100 ETH distributed to marketing addresses + dev (4-5eth per draw) estimated
+- Draw happens each time 300 ETH is reached.
+- Marketing department need to get 3000 Eth volume as a test. (So minimum 15 lottery draws) In essence your total royalty payment would be 75eth for the work.
+
 
 # Foundry Starter Kit
 
@@ -167,15 +178,3 @@ Contributions are always welcome! Open a PR or an issue!
 [ ] Add bash scripts to interact with contracts using `cast`
 
 [ ] Make deploying contracts to `anvil` simpler
-
-# Lottery Test
-
-Find where does the contract fail.
-
-
-## Specifications
-
-- Lottery is 200 ETH (coded into Smart contract) launches once contracts reaches 300ETH.
-- 100 ETH distributed to marketing addresses + dev (4-5eth per draw) estimated
-- Draw happens each time 300 ETH is reached.
-- Marketing department need to get 3000 Eth volume as a test. (So minimum 15 lottery draws) In essence your total royalty payment would be 75eth for the work.
