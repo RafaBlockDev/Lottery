@@ -33,6 +33,8 @@ contract Lottery is VRFConsumerBaseV2 {
     uint32 public immutable s_numWords = 6;
     uint32 immutable s_callbackGasLimit = 100000;
     uint256[] public s_randomWords;
+
+    uint256[] numbers;
     
     VRFCoordinatorV2Interface immutable COORDINATOR;
     LinkTokenInterface immutable LINKTOKEN;
@@ -86,24 +88,6 @@ contract Lottery is VRFConsumerBaseV2 {
         return _numTickets;
     }
 
-    function requestRandomWords() external {
-        s_requestId = COORDINATOR.requestRandomWords(
-            s_keyHash,
-            s_subscriptionId,
-            s_requestConfirmations,
-            s_callbackGasLimit,
-            s_numWords
-        );
-    }
-
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
-        internal
-        override
-    {
-        s_randomWords = randomWords;
-        emit ReturnedRandomness(randomWords);
-    }
-
     function drawLottery() internal onlyReachBalance {
         uint256 long =  boughtTickets.length;
         require(long > 0, "not tickets bought");
@@ -134,6 +118,43 @@ contract Lottery is VRFConsumerBaseV2 {
         require(tx2, "transaction not executed to owner");
         (bool tx3, ) = payable(secondPrize).call{value: 5 ether }("");
         require(tx3, "transaction not executed to ");
+    }
+
+    /*****************************************/
+    /************* VFR FUNCTIONS *************/
+    /*****************************************/
+
+    function requestRandomWords() external {
+        s_requestId = COORDINATOR.requestRandomWords(
+            s_keyHash,
+            s_subscriptionId,
+            s_requestConfirmations,
+            s_callbackGasLimit,
+            s_numWords
+        );
+    }
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
+        internal
+        override
+    {
+        s_randomWords = randomWords;
+        emit ReturnedRandomness(randomWords);
+    }
+
+    /*******************************/
+    /***** SETTER FUNCTIONS ********/
+    /*******************************/
+
+    function getLotteryNumbers() public returns(uint256[] memory) {
+        numbers = new uint[](6);
+        uint ranIndex = 0;
+        for(uint i = 0; i < 6; i++) {
+            uint ranNum = s_randomWords[ranIndex] % 69 + 1;
+            numbers[i] = ranNum;
+            ranIndex += 1;
+        }
+        return numbers;
     }
 
     /*******************************/
