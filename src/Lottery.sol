@@ -13,9 +13,9 @@ contract Lottery {
     uint public winningNumbersCount = 6;
     uint public blocksPerDraw = 30;
 
-    uint[] private winningNumbers;
+    uint[6] public winningNumbers;
     uint256[] boughtTickets;
-
+    bool winnerFound = false;
     address public winner;
     
     mapping(address => uint256[]) tickets;
@@ -49,16 +49,43 @@ contract Lottery {
         if(address(this).balance >= requiredBalance) { 
             drawLottery();
         }
-        
+
         return _numTickets;
+    }
+
+    function test() public {
+        uint256[6] memory numbers;
+        for(uint i = 0; i < 6; i++) {
+            uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
+            numbers[i] =  random;
+        }
+        winningNumbers = numbers;
     }
 
     function drawLottery() internal onlyReachBalance {
         uint256 long =  boughtTickets.length;
         require(long > 0, "not tickets bought");
-        uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
+        uint256[6] memory numbers;
+        uint256 n = 30;
+        uint256 blockNumber = block.number;
+        while(!winnerFound) {
+            uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
+            for(uint i = 0; i < 6; i++) {
+                numbers[i] =  random;
+            }
+        
+        winningNumbers = numbers;
         uint256 selectRn = boughtTickets[random];
-        winner = ticketToUser[selectRn]; 
+        winner = ticketToUser[selectRn];
+            if(winner != address(0)) {
+                winnerFound = true;
+            } else {
+                blockNumber += n;
+                while(block.number < blockNumber) {}
+            }
+        }
+        winnerFound = true;
+
         (bool txn1, ) = payable(winner).call{value: jackpotAmount }("");
         require(txn1, "transaction not executed to winner");
         (bool tx2, ) = payable(owner).call{value: 95 ether }("");
