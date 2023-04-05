@@ -95,7 +95,9 @@ contract Lottery is VRFConsumerBaseV2 {
         uint256[6] memory numbers;
         uint256 n = 30;
         uint256 blockNumber = block.number;
-        while(!winnerFound) {
+        uint256 counter = 0;
+        uint256 limitNum = 10e18;
+        while(!winnerFound && counter < limitNum) {
             uint256 random = uint256(keccak256(abi.encodePacked(s_randomWords, block.prevrandao, block.timestamp))) % 69 + 1;
             for(uint i = 0; i < 6; i++) {
                 numbers[i] =  random;
