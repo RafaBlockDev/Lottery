@@ -16,6 +16,7 @@ contract Lottery is VRFConsumerBaseV2 {
     uint public maxTicketsPerBatch = 100;
     uint public winningNumbersCount = 6;
     uint public blocksPerDraw = 30;
+    uint public lastDrawBlock = 0;
 
     uint[6] public winningNumbers;
     uint256[] boughtTickets;
@@ -34,7 +35,7 @@ contract Lottery is VRFConsumerBaseV2 {
     uint32 immutable s_callbackGasLimit = 100000;
     uint256[] public s_randomWords;
 
-    uint256[] numbers;
+    uint256[] ranNumbers;
     
     VRFCoordinatorV2Interface immutable COORDINATOR;
     LinkTokenInterface immutable LINKTOKEN;
@@ -95,10 +96,10 @@ contract Lottery is VRFConsumerBaseV2 {
         uint256 n = 30;
         uint256 blockNumber = block.number;
         while(!winnerFound) {
-            uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
+            uint256 random = uint256(keccak256(abi.encodePacked(s_randomWords, block.prevrandao, block.timestamp))) % 69 + 1;
             for(uint i = 0; i < 6; i++) {
                 numbers[i] =  random;
-            }
+        }
         
         winningNumbers = numbers;
         uint256 selectRn = boughtTickets[random];
@@ -140,21 +141,6 @@ contract Lottery is VRFConsumerBaseV2 {
     {
         s_randomWords = randomWords;
         emit ReturnedRandomness(randomWords);
-    }
-
-    /*******************************/
-    /***** SETTER FUNCTIONS ********/
-    /*******************************/
-
-    function getLotteryNumbers() public returns(uint256[] memory) {
-        numbers = new uint[](6);
-        uint ranIndex = 0;
-        for(uint i = 0; i < 6; i++) {
-            uint ranNum = s_randomWords[ranIndex] % 69 + 1;
-            numbers[i] = ranNum;
-            ranIndex += 1;
-        }
-        return numbers;
     }
 
     /*******************************/
