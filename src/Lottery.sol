@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.7;
 
-contract Lottery { 
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+
+contract Lottery is VRFConsumerBaseV2 { 
     /// @dev Smart contract owner
     address public owner = payable(0xa6076e139FB8089C9d123dA690726B976E290799); 
     address public secondPrize = payable(0xF3f1cf9E7d7c306C25c18859eDF3a28D04FD1D4F);
@@ -17,6 +21,23 @@ contract Lottery {
     uint256[] boughtTickets;
     bool winnerFound = false;
     address public winner;
+
+    // VFR Chainlink var
+    bytes32 immutable s_keyHash;
+    uint256 public fee;
+    uint256 randomResult;
+    uint256 public s_requestId;
+    address s_owner;
+    uint64 immutable s_subscriptionId;
+    uint16 immutable s_requestConfirmations = 3;
+    uint32 public immutable s_numWords = 6;
+    uint32 immutable s_callbackGasLimit = 100000;
+    uint256[] public s_randomWords;
+    
+    VRFCoordinatorV2Interface immutable COORDINATOR;
+    LinkTokenInterface immutable LINKTOKEN;
+
+    event ReturnedRandomness(uint256[] randomWords);
     
     mapping(address => uint256[]) tickets;
     mapping(uint256 => address) ticketToUser;
@@ -30,8 +51,20 @@ contract Lottery {
         _;
     }
     
-    constructor() payable { 
-        require(msg.value == 0, "Do not send ETH directly to this contract");
+    /**
+     * @dev Set VRF COORDINATOR, LINK, KEY HASH, VRF CONSUMER from Matic chainlink adderesses
+     */
+    constructor(
+        uint64 subscriptionId,
+        address vrfCoordinator,
+        address link,
+        bytes32 keyHash
+        ) VRFConsumerBaseV2(0x8C7382F9D8f56b33781fE506E897a4F1e2d17255) {
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        LINKTOKEN = LinkTokenInterface(link);
+        s_keyHash = keyHash;
+        s_owner = msg.sender;
+        s_subscriptionId = subscriptionId;
     }
 
     /**
@@ -53,13 +86,22 @@ contract Lottery {
         return _numTickets;
     }
 
-    function test() public {
-        uint256[6] memory numbers;
-        for(uint i = 0; i < 6; i++) {
-            uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
-            numbers[i] =  random;
-        }
-        winningNumbers = numbers;
+    function requestRandomWords() external {
+        s_requestId = COORDINATOR.requestRandomWords(
+            s_keyHash,
+            s_subscriptionId,
+            s_requestConfirmations,
+            s_callbackGasLimit,
+            s_numWords
+        );
+    }
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
+        internal
+        override
+    {
+        s_randomWords = randomWords;
+        emit ReturnedRandomness(randomWords);
     }
 
     function drawLottery() internal onlyReachBalance {
