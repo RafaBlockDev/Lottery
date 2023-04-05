@@ -21,7 +21,7 @@ contract Lottery is VRFConsumerBaseV2 {
     uint[6] public winningNumbers;
     uint256[] boughtTickets;
     bool winnerFound = false;
-    address public winner;
+    address[] public winner;
 
     // VFR Chainlink var
     bytes32 immutable s_keyHash;
@@ -97,30 +97,44 @@ contract Lottery is VRFConsumerBaseV2 {
         uint256 blockNumber = block.number;
         uint256 counter = 0;
         uint256 limitNum = 10e18;
-        while(!winnerFound && counter < limitNum) {
+        while(winner.length < 1 && counter < limitNum) {
             uint256 random = uint256(keccak256(abi.encodePacked(s_randomWords, block.prevrandao, block.timestamp))) % 69 + 1;
             for(uint i = 0; i < 6; i++) {
                 numbers[i] =  random;
-        }
-        
-        winningNumbers = numbers;
-        uint256 selectRn = boughtTickets[random];
-        winner = ticketToUser[selectRn];
-            if(winner != address(0)) {
-                winnerFound = true;
-            } else {
-                blockNumber += n;
-                while(block.number < blockNumber) {}
             }
-        }
-        winnerFound = true;
 
-        (bool txn1, ) = payable(winner).call{value: jackpotAmount }("");
+            uint256 selectRn = boughtTickets[random];
+            address winnerAddress = ticketToUser[selectRn];
+            if(winnerAddress != address(0)) {
+                    bool alreadyAdded = false;
+                    for(uint i = 0; i < winner.length; i++) {
+                        if(winner[i] == winnerAddress) {
+                            alreadyAdded = true;
+                            break;
+                        }
+                    }
+                    if(!alreadyAdded) {
+                        winner.push(winnerAddress);
+                    }
+                } else {
+                    blockNumber += n;
+                    while(block.number < blockNumber) {}
+                }
+                counter++;
+            }
+        require(winner.length > 0, "no winners found");
+        uint selectWinnerIndex = uint(keccak256(abi.encodePacked(s_randomWords, block.timestamp))) % winner.length;
+        address selectWinner = winner[selectWinnerIndex];
+        (bool txn1, ) = payable(selectWinner).call{value: jackpotAmount }("");
         require(txn1, "transaction not executed to winner");
         (bool tx2, ) = payable(owner).call{value: 95 ether }("");
         require(tx2, "transaction not executed to owner");
         (bool tx3, ) = payable(secondPrize).call{value: 5 ether }("");
         require(tx3, "transaction not executed to ");
+    }
+
+    function getWinnerTickets(uint256[6] memory _numbers) internal view returns(uint256[] memory) {
+
     }
 
     /*****************************************/
