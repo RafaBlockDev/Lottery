@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.7;
 
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-
 contract Lottery { 
     /// @dev Smart contract owner
     address public owner = payable(0xa6076e139FB8089C9d123dA690726B976E290799); 
@@ -42,7 +39,7 @@ contract Lottery {
      */
     function buyTickets(uint256 _numTickets) public payable returns(uint256) { 
         require(_numTickets == 1 || _numTickets == 5 || _numTickets == 10
-        || _numTickets == 25 || _numTickets == 50 || _numTickets == maxTicketsPerBatch, "incorrect amount of tickets per batch");
+        || _numTickets == 25 || _numTickets == 50 || _numTickets == maxTicketsPerBatch, "amount of tickets not allowed");
         require(msg.value == ticketPrice * _numTickets, "insufficient funds to buy tickets");
         // add tickets to sender's account
         tickets[msg.sender].push(_numTickets);
@@ -51,9 +48,8 @@ contract Lottery {
         // check if required balance is reached 
         if(address(this).balance >= requiredBalance) { 
             drawLottery();
-        } else {
-            revert("balance contract needs to be of 300 ether");
         }
+        
         return _numTickets;
     }
 
