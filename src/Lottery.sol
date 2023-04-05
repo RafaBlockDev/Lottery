@@ -14,12 +14,15 @@ contract Lottery {
     uint public requiredBalance = 300 ether;
     uint public maxTicketsPerBatch = 100;
     uint public winningNumbersCount = 6;
-    uint public blocksPerDraw = 30; 
-    uint public maxNumber = 69;
+    uint public blocksPerDraw = 30;
 
     uint[] private winningNumbers;
+    uint256[] boughtTickets;
+
+    address public winner;
     
-    mapping(address => uint[]) public tickets;
+    mapping(address => uint256[]) tickets;
+    mapping(uint256 => address) ticketToUser;
     mapping(address => uint) public balances;
 
     /**
@@ -36,71 +39,43 @@ contract Lottery {
 
     /**
      * @dev Price of ticket is 0.001 ETH
-     * can be bought in batches of 1, 5, 10, 25, 50, 100
      */
-    function buyTickets(uint[] memory _numbers) public payable returns(uint[] memory) { 
-        require(_numbers.length == 1 || _numbers.length == 5 || _numbers.length == 10
-        || _numbers.length == 25 || _numbers.length == 50 || _numbers.length == maxTicketsPerBatch, "incorrect amount of tickets per batch");
-        require(msg.value == ticketPrice * _numbers.length, "insufficient funds to buy tickets");  
-        require(winningNumbers.length == 0, "lottery has already been drawn");
-
-        uint totalPrice = ticketPrice * _numbers.length;
+    function buyTickets(uint256 _numTickets) public payable returns(uint256) { 
+        require(_numTickets == 1 || _numTickets == 5 || _numTickets == 10
+        || _numTickets == 25 || _numTickets == 50 || _numTickets == maxTicketsPerBatch, "incorrect amount of tickets per batch");
+        require(msg.value == ticketPrice * _numTickets, "insufficient funds to buy tickets");
         // add tickets to sender's account
-        tickets[msg.sender] = _numbers;
-        // update sender's balance
-        balances[msg.sender] -= totalPrice;
+        tickets[msg.sender].push(_numTickets);
+        boughtTickets.push(_numTickets);
+        ticketToUser[_numTickets] = msg.sender;
         // check if required balance is reached 
         if(address(this).balance >= requiredBalance) { 
             drawLottery();
-        } 
-        return _numbers;
-    }
-    
-    function drawLottery() internal onlyReachBalance { 
-        withdraw(); // Send 95 ether to owner and 5 ether to secondPrize
-        require(winningNumbers.length == 0, "lottery has already been drawn");
-
-        uint count = 0;
-        while (count < blocksPerDraw) {
-            for (uint i = 0; i < winningNumbersCount; i++) {
-                uint number;
-                do {
-                    number = random() % 69 + 1; // random number since 1 to 69
-                } while (contains(winningNumbers, number));
-                winningNumbers.push(number);
-            }
-            count++;
+        } else {
+            revert("balance contract needs to be of 300 ether");
         }
+        return _numTickets;
     }
 
-    /** 
-    * @dev Function to transfer to `owner` 95 Ether
-    * and 5 Ether to `secondPrize`
-    */
-    function withdraw() internal {
-    uint256 balance = address(this).balance;
-
-    (bool tx1, ) = payable(owner).call{value: balance - 205 }("");
-    require(tx1, "transaction not executed");
-    (bool tx2, ) = payable(secondPrize).call{value: balance - 295}("");
-    require(tx2, "transaction not executed");
+    function drawLottery() internal onlyReachBalance {
+        uint256 long =  boughtTickets.length;
+        require(long > 0, "not tickets bought");
+        uint256 random = uint256(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, block.coinbase))) % 69 + 1;
+        uint256 selectRn = boughtTickets[random];
+        winner = ticketToUser[selectRn]; 
+        (bool txn1, ) = payable(winner).call{value: jackpotAmount }("");
+        require(txn1, "transaction not executed to winner");
+        (bool tx2, ) = payable(owner).call{value: 95 ether }("");
+        require(tx2, "transaction not executed to owner");
+        (bool tx3, ) = payable(secondPrize).call{value: 5 ether }("");
+        require(tx3, "transaction not executed to ");
     }
 
-    /**
-     * @dev Get Random number 🚨
-     * 🚨 This function is insecure, only use with academics goals 🚨
-     */
-    function random() internal view returns (uint) {
-        return uint(keccak256(abi.encodePacked(blockhash(block.number - 1), msg.sender, block.timestamp)));
-    }
+    /*******************************/
+    /***** GETTER FUNCTIONS ********/
+    /*******************************/
 
-    function contains(uint[] memory array, uint element) internal pure returns (bool) {
-    // From winningNumbersCount
-    for (uint i = 0; i < array.length; i++) {
-        if (array[i] == element) {
-            return true;
-        }
+    function getTicketsPerUser(address _user) public view returns(uint256[] memory) {
+        return tickets[_user];
     }
-    return false;
-}
 }
